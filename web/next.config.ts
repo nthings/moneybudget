@@ -1,10 +1,5 @@
 import type { NextConfig } from 'next'
 
-const nextConfig: NextConfig = {
-  // instrumentationHook enables instrumentation.ts register() for startup migrations
-  experimental: {
-    instrumentationHook: true,
-  },
-}
+const nextConfig: NextConfig = {}
 
 export default nextConfig

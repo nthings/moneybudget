@@ -16,11 +16,12 @@ services:
   app:
     build: ./web
     ports:
-      - "3000:3000"
+      - "3010:3000"
     environment:
       DATABASE_URL: postgresql://postgres:password@db:5432/moneybudget
       AUTH_SECRET: ${AUTH_SECRET:-changeme-dev-only-secret}
-      AUTH_URL: http://localhost:3000
+      # AUTH_URL intentionally omitted — Auth.js derives callback URL from the request Host header,
+      # so the app works from localhost, 192.168.68.12, or any other name without reconfiguration.
       # Enable hot reload through Docker bind-mount volumes
       WATCHPACK_POLLING: "true"
       NODE_ENV: development

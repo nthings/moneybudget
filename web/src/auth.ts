@@ -5,16 +5,20 @@ import { eq } from "drizzle-orm"
 import { db } from "@/db"
 import { users, accounts, sessions, verificationTokens } from "@/db/schema"
 import { verifyPassword } from "@/lib/password"
+import { authConfig } from "./auth.config"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   adapter: DrizzleAdapter(db, {
     usersTable: users,
     accountsTable: accounts,
     sessionsTable: sessions,
     verificationTokensTable: verificationTokens,
   }),
-  session: { strategy: "database" },
-  pages: { signIn: "/sign-in" },
+  // JWT strategy: session token is a signed cookie — no DB round-trip needed in middleware.
+  // DrizzleAdapter is still used for user/account creation; the sessions table is created
+  // but not used for session storage in this mode.
+  session: { strategy: "jwt" },
   providers: [
     Credentials({
       credentials: {
@@ -36,15 +40,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         )
         if (!valid) return null
 
-        // Return only the safe subset — Auth.js stores this in the session
+        // Return only the safe subset — stored in the JWT
         return { id: user.id, email: user.email, name: user.name }
       },
     }),
   ],
   callbacks: {
-    // Include user.id in the session so server components can query by userId
-    session({ session, user }) {
-      session.user.id = user.id
+    // Persist user.id into the JWT on first sign-in
+    jwt({ token, user }) {
+      if (user) token.id = user.id
+      return token
+    },
+    // Expose user.id to server components via session.user.id
+    session({ session, token }) {
+      session.user.id = token.id as string
       return session
     },
   },

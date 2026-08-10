@@ -1,7 +1,6 @@
 "use client"
 
 import { useActionState } from "react"
-import Link from "next/link"
 import { signInWithCredentials } from "@/actions/auth"
 
 export default function SignInPage() {
@@ -81,16 +80,7 @@ export default function SignInPage() {
             </button>
           </form>
 
-          {/* Footer */}
-          <p className="mt-6 text-center text-sm text-textSecondary">
-            Don&apos;t have an account?{" "}
-            <Link
-              href="/sign-up"
-              className="text-accentBlue hover:text-accentBlue/80 underline-offset-2 hover:underline transition-colors"
-            >
-              Sign up
-            </Link>
-          </p>
+          {/* Footer — sign-up disabled */}
         </div>
       </div>
     </main>

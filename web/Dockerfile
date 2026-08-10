@@ -6,8 +6,8 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Install dependencies first (cached layer when source changes but deps don't)
-COPY package.json ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
 # Copy source code (overridden by bind mount in docker-compose dev mode)
 COPY . .
