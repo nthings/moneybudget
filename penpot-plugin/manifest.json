@@ -1,0 +1,9 @@
+{
+  "name": "MoneyBudget Design Setup",
+  "description": "Initialises pages, color tokens, and shape helper functions for the MoneyBudget Penpot prototype",
+  "code": "src/index.js",
+  "permissions": [
+    "content:read",
+    "content:write"
+  ]
+}

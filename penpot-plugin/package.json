@@ -1,0 +1,6 @@
+{
+  "name": "moneybudget-penpot-plugin",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Penpot plugin for MoneyBudget UI prototype — design system setup"
+}
