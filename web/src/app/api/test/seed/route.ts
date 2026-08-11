@@ -1,21 +1,31 @@
 /**
- * Dev-only seed API — inserts and removes test transactions for e2e specs.
+ * Dev-only seed API — inserts and removes test data for e2e specs.
  *
  * Guarded by NODE_ENV !== 'production'.  Never ship this to prod.
  *
  * POST  /api/test/seed
- *   Body: { email: string; rows: SeedRow[]; clearCurrentMonth?: boolean }
+ *   Transactions: { type?: "transactions"; email: string; rows: SeedRow[]; clearCurrentMonth?: boolean }
+ *   Goals:        { type: "goals"; email: string; goals: GoalRow[]; clearAll?: boolean }
  *   Returns: { ids: number[]; cleared: number }
  *
  * DELETE /api/test/seed
- *   Body: { ids: number[] }
+ *   Transactions: { ids: number[] }
+ *   Goals:        { type: "goals"; ids: number[] }
  *   Returns: { deleted: number }
  */
 
 import { NextRequest, NextResponse } from "next/server"
 import { eq, and, gte, lte, inArray } from "drizzle-orm"
 import { db } from "@/db"
-import { transactions, users } from "@/db/schema"
+import { transactions, users, piggyBankGoals } from "@/db/schema"
+
+interface GoalRow {
+  name: string
+  /** numeric string, e.g. "500.00" */
+  targetAmount: string
+  /** numeric string, defaults to "0.00" */
+  currentAmount?: string
+}
 
 interface SeedRow {
   merchant: string
@@ -33,24 +43,80 @@ function guardEnv(): NextResponse | null {
   return null
 }
 
-// ── POST: seed transactions ───────────────────────────────────────────────────
+// ── POST: seed transactions or goals ─────────────────────────────────────────
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const guard = guardEnv()
   if (guard) return guard
 
-  let body: { email?: string; rows?: SeedRow[]; clearCurrentMonth?: boolean }
+  let body: {
+    type?: string
+    email?: string
+    rows?: SeedRow[]
+    clearCurrentMonth?: boolean
+    goals?: GoalRow[]
+    clearAll?: boolean
+  }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
   }
 
-  const { email, rows, clearCurrentMonth = false } = body
+  const { type = "transactions", email } = body
 
   if (!email || typeof email !== "string") {
     return NextResponse.json({ error: "email is required" }, { status: 400 })
   }
+
+  // Lookup user
+  const user = await db.query.users.findFirst({ where: eq(users.email, email) })
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 })
+  }
+
+  // ── Goals branch ──
+  if (type === "goals") {
+    const { goals, clearAll = false } = body
+    if (!Array.isArray(goals) || goals.length === 0) {
+      return NextResponse.json({ error: "goals must be a non-empty array" }, { status: 400 })
+    }
+    for (const g of goals) {
+      if (!g.name || !g.targetAmount) {
+        return NextResponse.json(
+          { error: "Each goal needs name and targetAmount" },
+          { status: 400 },
+        )
+      }
+    }
+
+    let cleared = 0
+    if (clearAll) {
+      const deleted = await db
+        .delete(piggyBankGoals)
+        .where(eq(piggyBankGoals.userId, user.id))
+        .returning({ id: piggyBankGoals.id })
+      cleared = deleted.length
+    }
+
+    const inserted = await db
+      .insert(piggyBankGoals)
+      .values(
+        goals.map((g) => ({
+          userId: user.id,
+          name: g.name,
+          targetAmount: g.targetAmount,
+          currentAmount: g.currentAmount ?? "0.00",
+        })),
+      )
+      .returning({ id: piggyBankGoals.id })
+
+    return NextResponse.json({ ids: inserted.map((r) => r.id), cleared })
+  }
+
+  // ── Transactions branch (default) ──
+  const { rows, clearCurrentMonth = false } = body
+
   if (!Array.isArray(rows) || rows.length === 0) {
     return NextResponse.json({ error: "rows must be a non-empty array" }, { status: 400 })
   }
@@ -63,12 +129,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         { status: 400 },
       )
     }
-  }
-
-  // Lookup user
-  const user = await db.query.users.findFirst({ where: eq(users.email, email) })
-  if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 })
   }
 
   let cleared = 0
@@ -112,17 +172,22 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
   const guard = guardEnv()
   if (guard) return guard
 
-  let body: { ids?: number[] }
+  let body: { type?: string; ids?: number[] }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
   }
 
-  const { ids } = body
+  const { type = "transactions", ids } = body
 
   if (!Array.isArray(ids) || ids.length === 0) {
     return NextResponse.json({ deleted: 0 })
+  }
+
+  if (type === "goals") {
+    await db.delete(piggyBankGoals).where(inArray(piggyBankGoals.id, ids))
+    return NextResponse.json({ deleted: ids.length })
   }
 
   await db.delete(transactions).where(inArray(transactions.id, ids))
