@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: moneybudget
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: ./web
+    ports:
+      - "3010:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@db:5432/moneybudget
+      AUTH_SECRET: ${AUTH_SECRET:-changeme-dev-only-secret}
+      # AUTH_URL intentionally omitted — Auth.js derives callback URL from the request Host header,
+      # so the app works from localhost, 192.168.68.12, or any other name without reconfiguration.
+      # Enable hot reload through Docker bind-mount volumes
+      WATCHPACK_POLLING: "true"
+      NODE_ENV: development
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./web:/app
+      # Preserve container's node_modules and .next so the bind mount doesn't shadow them
+      - /app/node_modules
+      - /app/.next
+
+volumes:
+  postgres_data:
