@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { deleteTransaction as _deleteTransaction, TRANSACTION_CATEGORIES } from "@/actions/transactions"
+import { deleteTransaction as _deleteTransaction } from "@/actions/transactions"
+import { TRANSACTION_CATEGORIES } from "@/lib/transaction-categories"
 import type { TransactionRow } from "@/components/RecentTransactions"
 
 // Thin wrapper: <form action> expects (formData: FormData) => void | Promise<void>.

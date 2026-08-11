@@ -6,33 +6,7 @@ import { z } from "zod"
 import { auth } from "@/auth"
 import { db } from "@/db"
 import { transactions } from "@/db/schema"
-
-// ─── Category Constants ────────────────────────────────────────────────────────
-
-/**
- * Shared category list used by both the Zod enum (server-side validation)
- * and the client-side select dropdown (TransactionTable / AddTransactionForm).
- * Export this const — never duplicate the list.
- */
-export const TRANSACTION_CATEGORIES = [
-  "Groceries",
-  "Dining",
-  "Transport",
-  "Utilities",
-  "Housing",
-  "Healthcare",
-  "Entertainment",
-  "Shopping",
-  "Travel",
-  "Education",
-  "Personal Care",
-  "Subscriptions",
-  "Savings",
-  "Income",
-  "Other",
-] as const
-
-export type TransactionCategory = (typeof TRANSACTION_CATEGORIES)[number]
+import { TRANSACTION_CATEGORIES } from "@/lib/transaction-categories"
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 

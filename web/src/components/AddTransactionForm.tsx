@@ -1,7 +1,8 @@
 "use client"
 
 import { useActionState, useEffect, useState } from "react"
-import { addTransaction, TRANSACTION_CATEGORIES } from "@/actions/transactions"
+import { addTransaction } from "@/actions/transactions"
+import { TRANSACTION_CATEGORIES } from "@/lib/transaction-categories"
 
 // ─── AddTransactionForm ───────────────────────────────────────────────────────
 //
