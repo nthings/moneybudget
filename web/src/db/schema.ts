@@ -104,6 +104,17 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").defaultNow(),
 })
 
+export const incomeEntries = pgTable("income_entries", {
+  id: serial("id").primaryKey(),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  description: text("description").notNull(),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  receivedAt: date("received_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+})
+
 export const piggyBankGoals = pgTable("piggy_bank_goals", {
   id: serial("id").primaryKey(),
   userId: text("userId").notNull(),
