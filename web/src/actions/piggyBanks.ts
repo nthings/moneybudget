@@ -24,6 +24,16 @@ const createGoalSchema = z.object({
       message: "Target amount must be greater than 0",
     })
     .transform((v) => parseFloat(v).toFixed(2)),
+  // Optional: monthly contribution that auto-populates the Allocator
+  // Financial Goals tier. Empty string is treated as null.
+  monthlyContribution: z
+    .string()
+    .optional()
+    .transform((v) => {
+      if (!v || v.trim() === "") return null
+      const n = parseFloat(v)
+      return isNaN(n) || n < 0 ? null : n.toFixed(2)
+    }),
 })
 
 const depositSchema = z.object({
@@ -62,6 +72,7 @@ export async function createGoal(
   const parsed = createGoalSchema.safeParse({
     name: formData.get("name"),
     targetAmount: formData.get("targetAmount"),
+    monthlyContribution: formData.get("monthlyContribution") ?? undefined,
   })
   if (!parsed.success) {
     return { error: parsed.error.errors[0].message }
@@ -71,9 +82,13 @@ export async function createGoal(
     userId,
     name: parsed.data.name,
     targetAmount: parsed.data.targetAmount,
+    ...(parsed.data.monthlyContribution !== null && {
+      monthlyContribution: parsed.data.monthlyContribution,
+    }),
   })
 
   revalidatePath("/piggy-banks")
+  revalidatePath("/allocator")
   return { error: "" }
 }
 
@@ -133,5 +148,50 @@ export async function deposit(
     )
 
   revalidatePath("/piggy-banks")
+  return { error: "" }
+}
+
+/**
+ * updateMonthlyContribution — sets or clears the monthly contribution
+ * for an existing piggy bank goal. Passing "" or "0" clears it (sets null).
+ * When set, the goal auto-appears in the Allocator Financial Goals tier.
+ */
+export async function updateMonthlyContribution(
+  goalId: number,
+  rawAmount: string,
+): Promise<{ error: string }> {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return { error: "You must be signed in" }
+  }
+  const userId = session.user.id
+
+  const trimmed = rawAmount.trim()
+  const contribution =
+    trimmed === "" || trimmed === "0"
+      ? null
+      : (() => {
+          const n = parseFloat(trimmed)
+          return isNaN(n) || n < 0 ? null : n.toFixed(2)
+        })()
+
+  // Ownership guard
+  const [goal] = await db
+    .select({ id: piggyBankGoals.id })
+    .from(piggyBankGoals)
+    .where(and(eq(piggyBankGoals.id, goalId), eq(piggyBankGoals.userId, userId)))
+    .limit(1)
+
+  if (!goal) {
+    return { error: "Goal not found" }
+  }
+
+  await db
+    .update(piggyBankGoals)
+    .set({ monthlyContribution: contribution })
+    .where(and(eq(piggyBankGoals.id, goalId), eq(piggyBankGoals.userId, userId)))
+
+  revalidatePath("/piggy-banks")
+  revalidatePath("/allocator")
   return { error: "" }
 }

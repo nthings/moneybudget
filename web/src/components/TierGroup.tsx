@@ -12,10 +12,21 @@ export interface BudgetItem {
   allocatedAmount: string
 }
 
+/** Read-only item sourced from another domain (e.g. piggy bank contributions). */
+export interface ExternalItem {
+  id: number
+  name: string
+  amount: number
+}
+
 interface TierGroupProps {
   tier: "essential" | "financial" | "lifestyle"
   title: string
   items: BudgetItem[]
+  /** Read-only rows prepended to the list (not editable, not deletable). */
+  externalItems?: ExternalItem[]
+  /** When true, hides the manual add form (e.g. Financial Goals tier). */
+  hideAddForm?: boolean
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -213,11 +224,21 @@ function BudgetItemRow({ item }: { item: BudgetItem }) {
  * TierGroup — renders one budget tier section (Essential Needs, Financial Goals,
  * or Lifestyle) with a live item list and full CRUD via Server Actions.
  */
-export default function TierGroup({ tier, title, items }: TierGroupProps) {
-  const totalAllocated = items.reduce(
-    (sum, item) => sum + parseFloat(item.allocatedAmount),
-    0,
-  )
+export default function TierGroup({
+  tier,
+  title,
+  items,
+  externalItems = [],
+  hideAddForm = false,
+}: TierGroupProps) {
+  // When hideAddForm, the tier is fully sourced from external items — skip manual total.
+  const manualTotal = hideAddForm
+    ? 0
+    : items.reduce((sum, item) => sum + parseFloat(item.allocatedAmount), 0)
+  const externalTotal = externalItems.reduce((sum, i) => sum + i.amount, 0)
+  const totalAllocated = manualTotal + externalTotal
+
+  const isEmpty = hideAddForm ? externalItems.length === 0 : items.length === 0 && externalItems.length === 0
 
   return (
     <div className="bg-bgSurface border border-borderSubtle rounded-xl p-5">
@@ -229,19 +250,48 @@ export default function TierGroup({ tier, title, items }: TierGroupProps) {
         </span>
       </div>
 
-      {/* Budget item list */}
-      {items.length > 0 ? (
+      {/* External (read-only) items — e.g. piggy bank contributions */}
+      {externalItems.length > 0 && (
+        <ul className="mb-1">
+          {externalItems.map((item) => (
+            <li
+              key={`ext-${item.id}`}
+              className="flex items-center justify-between py-2 border-b border-borderSubtle last:border-0"
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-xs" title="Piggy bank monthly contribution">🐷</span>
+                <span className="text-textPrimary text-sm truncate">{item.name}</span>
+                <span className="shrink-0 text-xs text-zinc-500 italic">via Piggy Banks</span>
+              </div>
+              <span className="text-textSecondary text-sm tabular-nums shrink-0 ml-2">
+                {formatUSD(item.amount)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Manual budget item list — hidden when tier is sourced from external data */}
+      {!hideAddForm && items.length > 0 && (
         <ul className="mb-1">
           {items.map((item) => (
             <BudgetItemRow key={item.id} item={item} />
           ))}
         </ul>
-      ) : (
-        <p className="text-textMuted text-xs mb-2 py-2">No items yet — add one below.</p>
       )}
 
-      {/* Add item form */}
-      <AddItemForm tier={tier} />
+      {/* Empty state */}
+      {isEmpty && !hideAddForm && (
+        <p className="text-textMuted text-xs mb-2 py-2">No items yet — add one below.</p>
+      )}
+      {hideAddForm && externalItems.length === 0 && (
+        <p className="text-textMuted text-xs mb-2 py-2">
+          Set a monthly contribution on a Piggy Bank to populate this tier.
+        </p>
+      )}
+
+      {/* Add item form — hidden for tiers sourced from external data */}
+      {!hideAddForm && <AddItemForm tier={tier} />}
     </div>
   )
 }

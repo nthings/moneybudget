@@ -1,12 +1,12 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
-import { eq, and, gte, lt } from "drizzle-orm"
+import { eq, and, gte, lt, isNotNull } from "drizzle-orm"
 import { db } from "@/db"
-import { budgetItems, transactions, incomeEntries } from "@/db/schema"
+import { budgetItems, transactions, incomeEntries, piggyBankGoals } from "@/db/schema"
 import { computeZbbState } from "@/lib/zbb"
 import ZbbCounter from "@/components/ZbbCounter"
 import IncomeLedger, { type IncomeEntry } from "@/components/IncomeLedger"
-import TierGroup, { type BudgetItem } from "@/components/TierGroup"
+import TierGroup, { type BudgetItem, type ExternalItem } from "@/components/TierGroup"
 
 // The three fixed ZBB tiers displayed on this screen
 const TIERS: Array<{
@@ -68,11 +68,35 @@ export default async function AllocatorPage() {
     ),
   })
 
+  // ── Fetch piggy bank goals with a monthly contribution ───────────────────
+  // These auto-populate the Financial Goals tier as read-only allocation items.
+  const rawPiggyContributions = await db.query.piggyBankGoals.findMany({
+    where: and(
+      eq(piggyBankGoals.userId, userId),
+      isNotNull(piggyBankGoals.monthlyContribution),
+    ),
+    orderBy: (t, { asc }) => [asc(t.createdAt)],
+  })
+  const piggyContributions: ExternalItem[] = rawPiggyContributions
+    .filter((g) => parseFloat(g.monthlyContribution ?? "0") > 0)
+    .map((g) => ({
+      id: g.id,
+      name: g.name,
+      amount: parseFloat(g.monthlyContribution!),
+    }))
+  const piggyContributionTotal = piggyContributions.reduce((s, g) => s + g.amount, 0)
+
   // ── Compute ZBB state ────────────────────────────────────────────────────
   // monthlyIncome is already a JS number; computeZbbState accepts string|number.
-  const totalAllocations = items
-    .reduce((sum, item) => sum + parseFloat(item.allocatedAmount), 0)
-    .toString()
+  // Include piggy bank monthly contributions in the allocation total.
+  // Exclude manual financial-tier items from the ZBB total: that tier is
+  // now sourced exclusively from piggy bank contributions.
+  const totalAllocations = (
+    items
+      .filter((item) => item.tier !== "financial")
+      .reduce((sum, item) => sum + parseFloat(item.allocatedAmount), 0) +
+    piggyContributionTotal
+  ).toString()
 
   // ── Sum current-month expense transactions ─────────────────────────────
   // Transactions with a negative amount represent expenses.
@@ -144,6 +168,10 @@ export default async function AllocatorPage() {
             tier={tier}
             title={title}
             items={itemsForTier(tier)}
+            {...(tier === "financial" && {
+              externalItems: piggyContributions,
+              hideAddForm: true,
+            })}
           />
         ))}
       </div>

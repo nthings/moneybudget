@@ -1,0 +1,1 @@
+ALTER TABLE "piggy_bank_goals" ADD COLUMN "monthly_contribution" numeric(10, 2);

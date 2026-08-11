@@ -26,7 +26,7 @@ export function CreateGoalForm() {
       <form
         key={formKey}
         action={action}
-        className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+        className="grid grid-cols-1 gap-3 sm:grid-cols-4"
       >
         {/* Goal name */}
         <div className="flex flex-col gap-1 sm:col-span-2">
@@ -60,8 +60,24 @@ export function CreateGoalForm() {
           />
         </div>
 
+        {/* Monthly contribution (optional) */}
+        <div className="flex flex-col gap-1">
+          <label htmlFor="monthly-contribution" className="text-xs font-medium text-zinc-400">
+            Monthly contribution <span className="text-zinc-500">(optional)</span>
+          </label>
+          <input
+            id="monthly-contribution"
+            name="monthlyContribution"
+            type="text"
+            placeholder="e.g. 200"
+            inputMode="decimal"
+            pattern="^\d+(\.\d{1,2})?$"
+            className="rounded-md border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
+        </div>
+
         {/* Submit row */}
-        <div className="sm:col-span-3 flex items-center gap-4">
+        <div className="sm:col-span-4 flex items-center gap-4">
           <button
             type="submit"
             disabled={isPending}

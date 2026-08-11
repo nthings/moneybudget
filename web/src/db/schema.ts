@@ -123,5 +123,8 @@ export const piggyBankGoals = pgTable("piggy_bank_goals", {
   currentAmount: numeric("current_amount", { precision: 10, scale: 2 })
     .notNull()
     .default("0"),
+  // Optional monthly contribution — when set, this goal auto-appears in the
+  // Financial Goals tier of the Allocator as a ZBB allocation line item.
+  monthlyContribution: numeric("monthly_contribution", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow(),
 })
