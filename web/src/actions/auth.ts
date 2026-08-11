@@ -6,7 +6,8 @@ import { z } from "zod"
 import { db } from "@/db"
 import { users } from "@/db/schema"
 import { hashPassword } from "@/lib/password"
-import { signIn } from "@/auth"
+import { signIn, signOut } from "@/auth"
+import { seedDemoData } from "@/lib/seed"
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -51,11 +52,18 @@ export async function createUser(
   }
 
   const hash = await hashPassword(password)
-  await db.insert(users).values({
-    email,
-    password: hash,
-    name: email.split("@")[0], // default display name from email local-part
-  })
+  const [newUser] = await db
+    .insert(users)
+    .values({
+      email,
+      password: hash,
+      name: email.split("@")[0], // default display name from email local-part
+    })
+    .returning({ id: users.id })
+
+  // Seed demo data — failures are caught inside seedDemoData and emitted as
+  // console.warn; sign-up is never blocked by a seed failure.
+  await seedDemoData(newUser.id)
 
   // signIn() throws NEXT_REDIRECT on success — Next.js intercepts it,
   // so this line is unreachable on the happy path.
@@ -63,6 +71,14 @@ export async function createUser(
 
   // Unreachable; satisfies TypeScript return type
   return { error: "" }
+}
+
+/**
+ * signOutUser — sign-out Server Action.
+ * Redirects to /sign-in on completion (throws NEXT_REDIRECT, as expected).
+ */
+export async function signOutUser(): Promise<void> {
+  await signOut({ redirectTo: "/sign-in" })
 }
 
 /**
