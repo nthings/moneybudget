@@ -1,8 +1,8 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
-import { eq, and } from "drizzle-orm"
+import { eq, and, gte, lt } from "drizzle-orm"
 import { db } from "@/db"
-import { budgetPeriods, budgetItems } from "@/db/schema"
+import { budgetPeriods, budgetItems, transactions } from "@/db/schema"
 import { computeZbbState } from "@/lib/zbb"
 import ZbbCounter from "@/components/ZbbCounter"
 import IncomeInput from "@/components/IncomeInput"
@@ -53,9 +53,30 @@ export default async function AllocatorPage() {
     .reduce((sum, item) => sum + parseFloat(item.allocatedAmount), 0)
     .toString()
 
-  // totalActuals omitted — no per-item actual spend data in this sprint;
-  // actualBalance will equal income (all spend tracked via transactions separately).
-  const zbb = computeZbbState(income, totalAllocations)
+  // ── Sum current-month expense transactions ─────────────────────────────
+  // Transactions with a negative amount represent expenses.
+  // date column is a Postgres `date` returned as an ISO string (YYYY-MM-DD).
+  const monthStart = `${year}-${String(month).padStart(2, "0")}-01`
+  const nextMonthNum = month === 12 ? 1 : month + 1
+  const nextMonthYear = month === 12 ? year + 1 : year
+  const monthEnd = `${nextMonthYear}-${String(nextMonthNum).padStart(2, "0")}-01`
+
+  const monthlyTransactions = await db.query.transactions.findMany({
+    where: and(
+      eq(transactions.userId, userId),
+      gte(transactions.date, monthStart),
+      lt(transactions.date, monthEnd),
+    ),
+  })
+
+  // Sum absolute values of expense rows (negative amount = expense)
+  const totalSpend = monthlyTransactions
+    .filter((t) => parseFloat(t.amount) < 0)
+    .reduce((sum, t) => sum + Math.abs(parseFloat(t.amount)), 0)
+    .toString()
+
+  const totalActuals = totalSpend
+  const zbb = computeZbbState(income, totalAllocations, totalActuals)
 
   // ── Group items by tier ──────────────────────────────────────────────────
   function itemsForTier(tier: "essential" | "financial" | "lifestyle"): BudgetItem[] {
