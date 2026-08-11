@@ -2,10 +2,10 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { eq, and, gte, lt } from "drizzle-orm"
 import { db } from "@/db"
-import { budgetPeriods, budgetItems, transactions } from "@/db/schema"
+import { budgetItems, transactions, incomeEntries } from "@/db/schema"
 import { computeZbbState } from "@/lib/zbb"
 import ZbbCounter from "@/components/ZbbCounter"
-import IncomeInput from "@/components/IncomeInput"
+import IncomeLedger, { type IncomeEntry } from "@/components/IncomeLedger"
 import TierGroup, { type BudgetItem } from "@/components/TierGroup"
 
 // The three fixed ZBB tiers displayed on this screen
@@ -27,14 +27,37 @@ export default async function AllocatorPage() {
   const year = now.getFullYear()
   const month = now.getMonth() + 1 // 1-based
 
-  // ── Fetch current month's budget period ──────────────────────────────────
-  const period = await db.query.budgetPeriods.findFirst({
+  // ── Month boundary strings (ISO date, used for both income and transactions) ──
+  const monthStart = `${year}-${String(month).padStart(2, "0")}-01`
+  const nextMonthNum = month === 12 ? 1 : month + 1
+  const nextMonthYear = month === 12 ? year + 1 : year
+  const monthEnd = `${nextMonthYear}-${String(nextMonthNum).padStart(2, "0")}-01`
+
+  // ── Fetch income entries for the current calendar month ──────────────────
+  // receivedAt is a Postgres `date` column returned as ISO string (YYYY-MM-DD).
+  const rawIncomeEntries = await db.query.incomeEntries.findMany({
     where: and(
-      eq(budgetPeriods.userId, userId),
-      eq(budgetPeriods.year, year),
-      eq(budgetPeriods.month, month),
+      eq(incomeEntries.userId, userId),
+      gte(incomeEntries.receivedAt, monthStart),
+      lt(incomeEntries.receivedAt, monthEnd),
     ),
+    orderBy: (t, { asc }) => [asc(t.receivedAt), asc(t.id)],
   })
+
+  // Compute monthly income total from entries (replaces budgetPeriods.income for ZBB).
+  // parseFloat is safe here: amount is numeric(10,2) returned as string by Drizzle.
+  const monthlyIncome = rawIncomeEntries.reduce(
+    (sum, e) => sum + parseFloat(e.amount),
+    0,
+  )
+
+  // Shape entries for IncomeLedger props
+  const incomeEntryList: IncomeEntry[] = rawIncomeEntries.map((e) => ({
+    id: e.id,
+    description: e.description,
+    amount: e.amount,
+    receivedAt: e.receivedAt,
+  }))
 
   // ── Fetch all budget items for the current month ─────────────────────────
   const items = await db.query.budgetItems.findMany({
@@ -46,21 +69,13 @@ export default async function AllocatorPage() {
   })
 
   // ── Compute ZBB state ────────────────────────────────────────────────────
-  // income and allocatedAmount are numeric(10,2) — Drizzle returns strings
-  // (MEM017). computeZbbState accepts string|number and calls parseFloat internally.
-  const income = period?.income ?? "0"
+  // monthlyIncome is already a JS number; computeZbbState accepts string|number.
   const totalAllocations = items
     .reduce((sum, item) => sum + parseFloat(item.allocatedAmount), 0)
     .toString()
 
   // ── Sum current-month expense transactions ─────────────────────────────
   // Transactions with a negative amount represent expenses.
-  // date column is a Postgres `date` returned as an ISO string (YYYY-MM-DD).
-  const monthStart = `${year}-${String(month).padStart(2, "0")}-01`
-  const nextMonthNum = month === 12 ? 1 : month + 1
-  const nextMonthYear = month === 12 ? year + 1 : year
-  const monthEnd = `${nextMonthYear}-${String(nextMonthNum).padStart(2, "0")}-01`
-
   const monthlyTransactions = await db.query.transactions.findMany({
     where: and(
       eq(transactions.userId, userId),
@@ -76,7 +91,7 @@ export default async function AllocatorPage() {
     .toString()
 
   const totalActuals = totalSpend
-  const zbb = computeZbbState(income, totalAllocations, totalActuals)
+  const zbb = computeZbbState(monthlyIncome, totalAllocations, totalActuals)
 
   // ── Group items by tier ──────────────────────────────────────────────────
   function itemsForTier(tier: "essential" | "financial" | "lifestyle"): BudgetItem[] {
@@ -116,9 +131,9 @@ export default async function AllocatorPage() {
         />
       </div>
 
-      {/* ── Income setter ──────────────────────────────────────────────────── */}
+      {/* ── Income ledger ──────────────────────────────────────────────────── */}
       <div className="mb-6">
-        <IncomeInput currentIncome={income} />
+        <IncomeLedger entries={incomeEntryList} monthlyTotal={monthlyIncome} />
       </div>
 
       {/* ── Tier groups ────────────────────────────────────────────────────── */}
