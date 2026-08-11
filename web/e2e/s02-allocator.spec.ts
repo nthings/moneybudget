@@ -8,9 +8,6 @@
  * Run: cd web && npx playwright test e2e/s02-allocator.spec.ts
  *   Or: BASE_URL=http://192.168.68.12:3010 npx playwright test e2e/s02-allocator.spec.ts
  *
- * NOTE: UAT-03 income section (IncomeInput) is replaced in S07 by IncomeLedger.
- * Update beforeAll and UAT-03 when S07 ships.
- *
  * ZBB state semantics (from zbb.ts):
  *   healthy  ("On Track")    — 0–10% of income remains unallocated (well-balanced)
  *   warning  ("Unallocated") — >10% unallocated (dollars still need assigning)
@@ -71,11 +68,26 @@ test.describe("Allocator Screen (authenticated)", () => {
       count -= 1
     }
 
-    // ── Set known income ($5,000) ──────────────────────────────────────────
-    // NOTE: replaced in S07 by the IncomeLedger add-entry form.
-    await pg.getByLabel("Monthly income").fill("5000")
-    await pg.getByRole("button", { name: "Set Income" }).click()
-    await expect(pg.getByText("Income updated.")).toBeVisible({ timeout: 5_000 })
+    // ── Cleanup: delete all pre-existing income entries (S07: IncomeLedger CRUD) ──
+    // The combined li.group loop above already deletes budget item rows;
+    // income entry rows also use li.group so they are caught there.
+    // Re-delete any stragglers using the typed aria-label.
+    let incomeDeleteBtns = pg.getByRole("button", { name: /^Delete income entry:/i })
+    let incomeCount = await incomeDeleteBtns.count()
+    while (incomeCount > 0) {
+      await incomeDeleteBtns.first().click({ force: true })
+      await expect(incomeDeleteBtns).toHaveCount(incomeCount - 1, { timeout: 5_000 })
+      incomeCount -= 1
+    }
+
+    // ── Set known income ($5,000) via IncomeLedger (replaced IncomeInput in S07) ──
+    const today = new Date()
+    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`
+    await pg.getByPlaceholder("Description (e.g. Salary, Freelance)").fill("Test Income S02")
+    await pg.getByPlaceholder("0.00").fill("5000")
+    await pg.locator('input[type="date"]').fill(dateStr)
+    await pg.getByRole("button", { name: "Add" }).click()
+    await expect(pg.getByText("Income entry added.")).toBeVisible({ timeout: 5_000 })
   })
 
   test.afterAll(async () => {
@@ -96,14 +108,17 @@ test.describe("Allocator Screen (authenticated)", () => {
 
   // ─── UAT-02: Page structure ───────────────────────────────────────────────
 
-  test("UAT-02: allocator renders tier groups, ZBB counter cards, and income form", async () => {
+  test("UAT-02: allocator renders tier groups, ZBB counter cards, and income ledger", async () => {
     await expect(pg.getByRole("heading", { name: "The Allocator" })).toBeVisible()
     for (const tier of ["Essential Needs", "Financial Goals", "Lifestyle"]) {
       await expect(pg.getByText(tier)).toBeVisible()
     }
     await expect(pg.getByText("Budget Balance")).toBeVisible()
     await expect(pg.getByText("Actual Balance")).toBeVisible()
-    await expect(pg.getByLabel("Monthly income")).toBeVisible()
+    // IncomeLedger replaced IncomeInput in S07 — check add-form placeholder
+    await expect(
+      pg.getByPlaceholder("Description (e.g. Salary, Freelance)"),
+    ).toBeVisible()
   })
 
   // ─── UAT-03: Zero allocations — warning state ─────────────────────────────
