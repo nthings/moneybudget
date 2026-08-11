@@ -82,9 +82,9 @@ test.describe("Income Entries Ledger (/allocator)", () => {
     await pg
       .getByPlaceholder("Description (e.g. Salary, Freelance)")
       .fill("Salary Aug 1st")
-    await pg.getByPlaceholder("0.00").fill("2500")
+    await pg.locator('input[type="text"][name="amount"]').fill("2500")
     await pg.locator('input[type="date"]').fill(currentMonthDate(1))
-    await pg.getByRole("button", { name: "Add" }).click()
+    await pg.getByRole("button", { name: "Add", exact: true }).click()
 
     await expect(pg.getByText("Income entry added.")).toBeVisible({ timeout: 5_000 })
     await expect(pg.getByText("Salary Aug 1st")).toBeVisible()
@@ -97,9 +97,9 @@ test.describe("Income Entries Ledger (/allocator)", () => {
     await pg
       .getByPlaceholder("Description (e.g. Salary, Freelance)")
       .fill("Freelance Aug 5th")
-    await pg.getByPlaceholder("0.00").fill("800")
+    await pg.locator('input[type="text"][name="amount"]').fill("800")
     await pg.locator('input[type="date"]').fill(currentMonthDate(5))
-    await pg.getByRole("button", { name: "Add" }).click()
+    await pg.getByRole("button", { name: "Add", exact: true }).click()
 
     await expect(pg.getByText("Income entry added.")).toBeVisible({ timeout: 5_000 })
     await expect(pg.getByText("Freelance Aug 5th")).toBeVisible()

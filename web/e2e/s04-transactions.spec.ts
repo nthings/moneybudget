@@ -65,12 +65,25 @@ test.describe("Transaction Review Screen (authenticated)", () => {
     pg = await browser.newPage()
     await signIn(pg)
 
-    // ── Set known income ($3,000) on /allocator ──────────────────────────
+    // ── Set known income ($3,000) via IncomeLedger on /allocator ──────────
+    // S07 replaced the flat IncomeInput with IncomeLedger (income_entries).
     await pg.goto("/allocator")
     await expect(pg).toHaveURL(/\/allocator/)
-    await pg.getByLabel("Monthly income").fill("3000")
-    await pg.getByRole("button", { name: "Set Income" }).click()
-    await expect(pg.getByText("Income updated.")).toBeVisible({ timeout: 5_000 })
+
+    // Clear any pre-existing income entries so the $3,000 total is exact.
+    const existingDeleteBtns = pg.getByRole("button", { name: /^Delete income entry:/i })
+    let incomeCount = await existingDeleteBtns.count()
+    while (incomeCount > 0) {
+      await existingDeleteBtns.first().click({ force: true })
+      await expect(existingDeleteBtns).toHaveCount(incomeCount - 1, { timeout: 5_000 })
+      incomeCount -= 1
+    }
+
+    // Add a single $3,000 income entry.
+    await pg.getByPlaceholder("Description (e.g. Salary, Freelance)").fill("Test Salary")
+    await pg.locator('input[type="text"][name="amount"]').fill("3000")
+    await pg.getByRole("button", { name: "Add", exact: true }).click()
+    await expect(pg.getByText("Income entry added.")).toBeVisible({ timeout: 5_000 })
 
     // ── Clear current-month transactions for deterministic state ─────────
     // Seed a single placeholder row with clearCurrentMonth:true, then remove it.
@@ -111,7 +124,7 @@ test.describe("Transaction Review Screen (authenticated)", () => {
 
     // Form fields
     await expect(pg.getByLabel("Merchant")).toBeVisible()
-    await expect(pg.getByLabel("Category")).toBeVisible()
+    await expect(pg.getByLabel("Category", { exact: true })).toBeVisible()
     await expect(pg.getByLabel("Amount", { exact: false })).toBeVisible()
     await expect(pg.getByLabel("Date")).toBeVisible()
     await expect(pg.getByRole("button", { name: "Add Transaction" })).toBeVisible()
@@ -129,7 +142,7 @@ test.describe("Transaction Review Screen (authenticated)", () => {
   test("UAT-03: adding a transaction via the form shows it in the table", async () => {
     // Fill the form
     await pg.getByLabel("Merchant").fill("Whole Foods")
-    await pg.getByLabel("Category").selectOption("Groceries")
+    await pg.getByLabel("Category", { exact: true }).selectOption("Groceries")
     await pg.getByLabel("Amount", { exact: false }).fill("-42.50")
     // Date defaults to today; confirm it has the expected value
     await expect(pg.getByLabel("Date")).toHaveValue(TODAY)
@@ -137,14 +150,14 @@ test.describe("Transaction Review Screen (authenticated)", () => {
     await pg.getByRole("button", { name: "Add Transaction" }).click()
 
     // Success message appears
-    await expect(pg.getByRole("status", { name: /transaction added/i })).toBeVisible({ timeout: 5_000 })
+    await expect(pg.getByText("Transaction added!")).toBeVisible({ timeout: 5_000 })
 
     // Form resets (formKey counter): merchant field goes back to empty
     await expect(pg.getByLabel("Merchant")).toHaveValue("", { timeout: 5_000 })
 
     // New row appears in the table
-    await expect(pg.getByRole("cell", { name: "Whole Foods" })).toBeVisible({ timeout: 5_000 })
-    await expect(pg.getByRole("cell", { name: "Groceries" })).toBeVisible()
+    await expect(pg.getByRole("cell", { name: "Whole Foods", exact: true })).toBeVisible({ timeout: 5_000 })
+    await expect(pg.getByRole("cell", { name: "Groceries", exact: true })).toBeVisible()
     // Amount formatted as expense: −$42.50 (unicode minus)
     await expect(pg.getByText("−$42.50")).toBeVisible()
 
@@ -192,13 +205,13 @@ test.describe("Transaction Review Screen (authenticated)", () => {
 
   test("UAT-06: deleting a transaction removes it from the table", async () => {
     // Verify it's present first
-    await expect(pg.getByRole("cell", { name: "Whole Foods" })).toBeVisible()
+    await expect(pg.getByRole("cell", { name: "Whole Foods", exact: true })).toBeVisible()
 
     // Click the delete button for this row
     await pg.getByRole("button", { name: /Delete transaction at Whole Foods/ }).click()
 
     // Row disappears after RSC revalidation
-    await expect(pg.getByRole("cell", { name: "Whole Foods" })).not.toBeVisible({ timeout: 5_000 })
+    await expect(pg.getByRole("cell", { name: "Whole Foods", exact: true })).not.toBeVisible({ timeout: 5_000 })
 
     // Empty-state message returns
     await expect(pg.getByText("No transactions yet. Add your first transaction above.")).toBeVisible()
@@ -223,24 +236,24 @@ test.describe("Transaction Review Screen (authenticated)", () => {
 
     // Reload so the RSC picks up the seeded rows
     await pg.reload()
-    await expect(pg.getByRole("cell", { name: "Shake Shack" })).toBeVisible({ timeout: 5_000 })
+    await expect(pg.getByRole("cell", { name: "Shake Shack", exact: true })).toBeVisible({ timeout: 5_000 })
 
     // ── Filter to Groceries ──────────────────────────────────────────────
     await pg.getByLabel("Filter by category").selectOption("Groceries")
 
     // Both grocery rows visible
-    await expect(pg.getByRole("cell", { name: "Trader Joe's" })).toBeVisible()
-    await expect(pg.getByRole("cell", { name: "Whole Foods" })).toBeVisible()
+    await expect(pg.getByRole("cell", { name: "Trader Joe's", exact: true })).toBeVisible()
+    await expect(pg.getByRole("cell", { name: "Whole Foods", exact: true })).toBeVisible()
 
     // Dining row hidden
-    await expect(pg.getByRole("cell", { name: "Shake Shack" })).not.toBeVisible()
+    await expect(pg.getByRole("cell", { name: "Shake Shack", exact: true })).not.toBeVisible()
 
     // Row count label reflects filter
     await expect(pg.getByText(/Showing 2 of 3 transactions/)).toBeVisible()
 
     // ── Reset to All categories ──────────────────────────────────────────
     await pg.getByLabel("Filter by category").selectOption("all")
-    await expect(pg.getByRole("cell", { name: "Shake Shack" })).toBeVisible()
+    await expect(pg.getByRole("cell", { name: "Shake Shack", exact: true })).toBeVisible()
     await expect(pg.getByText(/Showing 3 of 3 transactions/)).toBeVisible()
   })
 
@@ -250,14 +263,14 @@ test.describe("Transaction Review Screen (authenticated)", () => {
     // Search for "whole" — should match "Whole Foods" only
     await pg.getByLabel("Search transactions").fill("whole")
 
-    await expect(pg.getByRole("cell", { name: "Whole Foods" })).toBeVisible()
-    await expect(pg.getByRole("cell", { name: "Trader Joe's" })).not.toBeVisible()
-    await expect(pg.getByRole("cell", { name: "Shake Shack" })).not.toBeVisible()
+    await expect(pg.getByRole("cell", { name: "Whole Foods", exact: true })).toBeVisible()
+    await expect(pg.getByRole("cell", { name: "Trader Joe's", exact: true })).not.toBeVisible()
+    await expect(pg.getByRole("cell", { name: "Shake Shack", exact: true })).not.toBeVisible()
     await expect(pg.getByText(/Showing 1 of 3 transactions/)).toBeVisible()
 
     // Clear search — all rows return
     await pg.getByLabel("Search transactions").fill("")
-    await expect(pg.getByRole("cell", { name: "Trader Joe's" })).toBeVisible()
+    await expect(pg.getByRole("cell", { name: "Trader Joe's", exact: true })).toBeVisible()
     await expect(pg.getByText(/Showing 3 of 3 transactions/)).toBeVisible()
   })
 
