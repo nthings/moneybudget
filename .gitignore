@@ -29,6 +29,8 @@ lpt[1-9].*
 .env
 .env.*
 !.env.example
+!.env.test.example
+!web/.env.test.example
 node_modules/
 .next/
 dist/
