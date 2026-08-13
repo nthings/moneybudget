@@ -15,6 +15,9 @@
  *   Returns: { deleted: number }
  */
 
+// Never statically collected — requires DB at runtime
+export const dynamic = "force-dynamic"
+
 import { NextRequest, NextResponse } from "next/server"
 import { eq, and, gte, lte, inArray } from "drizzle-orm"
 import { db } from "@/db"
