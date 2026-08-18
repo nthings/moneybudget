@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { DepositForm } from "@/components/DepositForm"
 import {
   updateMonthlyContribution,
@@ -31,6 +32,11 @@ interface GoalCardProps {
 }
 
 export function GoalCard({ goal }: GoalCardProps) {
+  const router = useRouter()
+
+  // ── Optimistic display state ─────────────────────────────────────────────
+  const [displayName, setDisplayName] = useState(goal.name)
+
   // ── Deposit form ─────────────────────────────────────────────────────────
   const [depositOpen, setDepositOpen] = useState(false)
 
@@ -81,6 +87,7 @@ export function GoalCard({ goal }: GoalCardProps) {
       setMonthlyError(result.error)
     } else {
       setEditingMonthly(false)
+      router.refresh()
     }
   }
 
@@ -95,7 +102,9 @@ export function GoalCard({ goal }: GoalCardProps) {
     if (result.error) {
       setGoalError(result.error)
     } else {
+      setDisplayName(nameInput)
       setEditingGoal(false)
+      router.refresh()
     }
   }
 
@@ -107,8 +116,9 @@ export function GoalCard({ goal }: GoalCardProps) {
     if (result.error) {
       setDeleteError(result.error)
       setConfirmDelete(false)
+    } else {
+      router.refresh()
     }
-    // On success the parent page revalidates and this card unmounts
   }
 
   // ─── Edit mode — replaces the header ────────────────────────────────────
@@ -159,7 +169,7 @@ export function GoalCard({ goal }: GoalCardProps) {
               type="button"
               onClick={() => {
                 setEditingGoal(false)
-                setNameInput(goal.name)
+                setNameInput(displayName)
                 setTargetInput(parseFloat(goal.targetAmount).toFixed(2))
                 setGoalError("")
               }}
@@ -180,7 +190,7 @@ export function GoalCard({ goal }: GoalCardProps) {
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-base font-semibold text-zinc-100">
-            {goal.name}
+            {displayName}
           </h3>
           <p className="mt-0.5 text-xs text-zinc-400">
             {fmt(current)}{" "}
