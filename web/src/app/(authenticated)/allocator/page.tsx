@@ -134,7 +134,7 @@ export default async function AllocatorPage() {
   })
 
   return (
-    <div className="p-8 max-w-4xl">
+    <div className="p-4 md:p-8 max-w-4xl">
       {/* ── Page header ────────────────────────────────────────────────────── */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-textPrimary mb-1">The Allocator</h1>
@@ -142,7 +142,7 @@ export default async function AllocatorPage() {
       </div>
 
       {/* ── ZBB Counter Cards ──────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <ZbbCounter
           label="Budget Balance"
           balance={zbb.budgetBalance}

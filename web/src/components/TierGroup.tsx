@@ -57,14 +57,14 @@ function AddItemForm({ tier }: { tier: string }) {
       <form key={formKey} action={action} className="flex flex-col gap-2">
         <input type="hidden" name="tier" value={tier} />
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <input
             type="text"
             name="label"
             placeholder="Item name"
             required
             maxLength={100}
-            className="flex-1 px-3 py-2 bg-bgElevated border border-borderMedium rounded-lg
+            className="flex-1 min-w-[140px] px-3 py-2 bg-bgElevated border border-borderMedium rounded-lg
                        text-textPrimary text-sm placeholder:text-textMuted
                        focus:outline-none focus:ring-2 focus:ring-accentBlue"
           />

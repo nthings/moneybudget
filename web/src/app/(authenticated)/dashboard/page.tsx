@@ -66,7 +66,7 @@ export default async function DashboardPage() {
   })
 
   return (
-    <div className="p-8 max-w-4xl">
+    <div className="p-4 md:p-8 max-w-4xl">
       {/* ── Page header ───────────────────────────────────────────────────── */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-textPrimary mb-1">Dashboard</h1>
@@ -74,7 +74,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Stat cards ────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <StatCard label="Total Income" amount={totalIncome} accent="income" />
         <StatCard label="Total Spent" amount={totalSpent} accent="spent" />
         <StatCard label="Remaining" amount={remaining} accent="remaining" />

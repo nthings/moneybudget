@@ -19,7 +19,7 @@ export default async function PiggyBanksPage() {
   })
 
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="p-4 md:p-8 max-w-2xl">
       {/* ── Page header ──────────────────────────────────────────────────── */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-textPrimary mb-1">Piggy Banks</h1>

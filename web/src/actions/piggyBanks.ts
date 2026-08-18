@@ -152,6 +152,98 @@ export async function deposit(
 }
 
 /**
+ * deleteGoal — permanently removes a piggy bank goal owned by the authenticated user.
+ */
+export async function deleteGoal(
+  goalId: number,
+): Promise<{ error: string }> {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return { error: "You must be signed in" }
+  }
+  const userId = session.user.id
+
+  // Ownership guard: only delete if the goal belongs to this user
+  const [goal] = await db
+    .select({ id: piggyBankGoals.id })
+    .from(piggyBankGoals)
+    .where(and(eq(piggyBankGoals.id, goalId), eq(piggyBankGoals.userId, userId)))
+    .limit(1)
+
+  if (!goal) {
+    return { error: "Goal not found" }
+  }
+
+  await db
+    .delete(piggyBankGoals)
+    .where(and(eq(piggyBankGoals.id, goalId), eq(piggyBankGoals.userId, userId)))
+
+  revalidatePath("/piggy-banks")
+  revalidatePath("/allocator")
+  return { error: "" }
+}
+
+const updateGoalSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Goal name is required")
+    .max(200, "Goal name is too long"),
+  targetAmount: z
+    .string()
+    .regex(
+      /^\d+(\.\d{1,2})?$/,
+      "Target amount must be a positive number with up to 2 decimal places",
+    )
+    .refine((v) => parseFloat(v) > 0, {
+      message: "Target amount must be greater than 0",
+    })
+    .transform((v) => parseFloat(v).toFixed(2)),
+})
+
+/**
+ * updateGoal — edits the name and/or target amount of an existing piggy bank goal.
+ * Ownership-guarded. currentAmount is not modified.
+ */
+export async function updateGoal(
+  goalId: number,
+  data: { name: string; targetAmount: string },
+): Promise<{ error: string }> {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return { error: "You must be signed in" }
+  }
+  const userId = session.user.id
+
+  const parsed = updateGoalSchema.safeParse(data)
+  if (!parsed.success) {
+    return { error: parsed.error.errors[0].message }
+  }
+
+  // Ownership guard
+  const [goal] = await db
+    .select({ id: piggyBankGoals.id })
+    .from(piggyBankGoals)
+    .where(and(eq(piggyBankGoals.id, goalId), eq(piggyBankGoals.userId, userId)))
+    .limit(1)
+
+  if (!goal) {
+    return { error: "Goal not found" }
+  }
+
+  await db
+    .update(piggyBankGoals)
+    .set({
+      name: parsed.data.name,
+      targetAmount: parsed.data.targetAmount,
+    })
+    .where(and(eq(piggyBankGoals.id, goalId), eq(piggyBankGoals.userId, userId)))
+
+  revalidatePath("/piggy-banks")
+  revalidatePath("/allocator")
+  return { error: "" }
+}
+
+/**
  * updateMonthlyContribution — sets or clears the monthly contribution
  * for an existing piggy bank goal. Passing "" or "0" clears it (sets null).
  * When set, the goal auto-appears in the Allocator Financial Goals tier.

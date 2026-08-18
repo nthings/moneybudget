@@ -116,9 +116,9 @@ function AddIncomeForm() {
                      focus:outline-none focus:ring-2 focus:ring-accentBlue"
         />
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {/* Amount */}
-          <div className="relative flex-1">
+          <div className="relative flex-1 min-w-[120px]">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-textSecondary text-sm select-none">
               $
             </span>
