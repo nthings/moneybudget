@@ -26,39 +26,42 @@ export function DepositForm({ goalId, onSuccess }: DepositFormProps) {
   }, [state, onSuccess])
 
   return (
-    <form key={formKey} action={action} className="mt-3 flex items-end gap-2">
+    <form key={formKey} action={action} className="mt-3 flex flex-col gap-2">
       {/* Hidden goal ID */}
       <input type="hidden" name="goalId" value={goalId} />
 
-      {/* Deposit amount */}
-      <div className="flex flex-col gap-1 flex-1">
-        <label
-          htmlFor={`deposit-amount-${goalId}`}
-          className="text-xs font-medium text-zinc-400"
+      {/* Input + button row */}
+      <div className="flex items-end gap-2">
+        {/* Deposit amount */}
+        <div className="flex flex-col gap-1 flex-1">
+          <label
+            htmlFor={`deposit-amount-${goalId}`}
+            className="text-xs font-medium text-zinc-400"
+          >
+            Amount
+          </label>
+          <input
+            id={`deposit-amount-${goalId}`}
+            name="amount"
+            type="text"
+            required
+            placeholder="e.g. 50.00"
+            inputMode="decimal"
+            pattern="^\d+(\.\d{1,2})?$"
+            className="rounded-md border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={isPending}
+          className="shrink-0 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Amount
-        </label>
-        <input
-          id={`deposit-amount-${goalId}`}
-          name="amount"
-          type="text"
-          required
-          placeholder="e.g. 50.00"
-          inputMode="decimal"
-          pattern="^\d+(\.\d{1,2})?$"
-          className="rounded-md border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-        />
+          {isPending ? "Depositing…" : "Deposit"}
+        </button>
       </div>
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="shrink-0 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {isPending ? "Depositing…" : "Deposit"}
-      </button>
-
-      {/* Inline feedback */}
+      {/* Error feedback on its own row — prevents narrow-width cramping */}
       {state?.error && (
         <p className="text-sm text-red-400" role="alert">
           {state.error}

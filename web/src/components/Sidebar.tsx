@@ -156,7 +156,7 @@ export default function Sidebar() {
 
       {/* ── Mobile bottom navigation (hidden on desktop) ────────────────────── */}
       <nav
-        className="md:hidden fixed bottom-0 inset-x-0 z-50 flex bg-sidebarBg border-t border-borderSubtle"
+        className="md:hidden fixed bottom-0 inset-x-0 z-50 flex bg-sidebarBg border-t border-borderSubtle pb-[env(safe-area-inset-bottom)]"
         aria-label="Mobile navigation"
       >
         {navItems.map((item) => {

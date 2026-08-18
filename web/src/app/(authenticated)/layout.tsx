@@ -32,8 +32,8 @@ export default async function AuthenticatedLayout({
             </button>
           </form>
         </header>
-        {/* pb-16 reserves space for the fixed mobile bottom nav */}
-        <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
+        {/* pb reserves space for the fixed mobile bottom nav + iOS home indicator */}
+        <main className="flex-1 overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
           {children}
         </main>
       </div>
