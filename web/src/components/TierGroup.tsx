@@ -184,8 +184,8 @@ function BudgetItemRow({ item }: { item: BudgetItem }) {
           {formatUSD(item.allocatedAmount)}
         </span>
 
-        {/* Edit/delete controls — visible on hover */}
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Edit/delete controls — always visible on mobile, hover-reveal on desktop */}
+        <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           <button
             type="button"
             onClick={() => setEditing(true)}

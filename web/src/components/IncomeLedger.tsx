@@ -67,7 +67,7 @@ function IncomeEntryRow({ entry }: { entry: IncomeEntry }) {
             aria-label={`Delete income entry: ${entry.description}`}
             className="p-1 text-textMuted hover:text-budgetOverspent rounded
                        disabled:opacity-50 transition-colors text-xs
-                       opacity-0 group-hover:opacity-100"
+                       sm:opacity-0 sm:group-hover:opacity-100"
           >
             🗑️
           </button>
