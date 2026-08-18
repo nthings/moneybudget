@@ -20,7 +20,10 @@
 
 import { test, expect, type Page } from "@playwright/test"
 
-const USER = { email: "E2E_TEST_USER_EMAIL", password: "REDACTED" }
+const USER = {
+  email: process.env.E2E_USER_EMAIL ?? "test@test.com",
+  password: process.env.E2E_USER_PASSWORD ?? "12345",
+}
 const SEED_URL = "/api/test/seed"
 
 async function signIn(page: Page): Promise<void> {
@@ -256,5 +259,62 @@ test.describe("Piggy Banks Screen (authenticated)", () => {
     // Capped at 100% — goal reached badge shown
     await expect(goalCard.getByText("🎉 Goal reached!")).toBeVisible({ timeout: 5_000 })
     await expect(goalCard.getByText("100%")).toBeVisible()
+  })
+
+  // ─── UAT-09: Edit goal name → card heading updates immediately ────────────
+
+  test("UAT-09: editing a goal name updates the card heading immediately", async () => {
+    await pg.goto("/piggy-banks")
+
+    // Click the edit (pencil) button scoped to the Emergency Fund card
+    await pg.getByRole("button", { name: "Edit Emergency Fund" }).click()
+
+    // The card switches to edit mode — fill the name input
+    const nameInput = pg.getByPlaceholder("Goal name")
+    await expect(nameInput).toBeVisible()
+    await nameInput.fill("Emergency Reserve")
+
+    await pg.getByRole("button", { name: "Save" }).click()
+
+    // Heading updates immediately via optimistic setDisplayName + router.refresh()
+    await expect(
+      pg.getByRole("heading", { name: "Emergency Reserve" }),
+    ).toBeVisible({ timeout: 5_000 })
+    // Old name is gone
+    await expect(
+      pg.getByRole("heading", { name: "Emergency Fund" }),
+    ).not.toBeVisible()
+  })
+
+  // ─── UAT-10: Delete a goal → card disappears from the page immediately ────
+
+  test("UAT-10: deleting a goal removes its card from the page immediately", async () => {
+    // Seed a dedicated goal so this test is self-contained
+    const res = await pg.request.post(SEED_URL, {
+      data: {
+        type: "goals",
+        email: USER.email,
+        goals: [{ name: "Delete Me Goal", targetAmount: "200.00" }],
+      },
+    })
+    const json = await res.json()
+    seededIds.push(...(json.ids ?? []))
+
+    await pg.goto("/piggy-banks")
+    await expect(pg.getByRole("heading", { name: "Delete Me Goal" })).toBeVisible()
+
+    // Scope to this card and trigger the delete confirmation
+    const goalCard = pg.locator("div.border").filter({
+      has: pg.getByRole("heading", { name: "Delete Me Goal" }),
+    })
+    await goalCard.getByRole("button", { name: "Delete Delete Me Goal" }).click()
+
+    // Confirm deletion — the confirm button text is "Delete" (no aria-label)
+    await goalCard.getByRole("button", { name: "Delete", exact: true }).click()
+
+    // Card disappears — router.refresh() re-renders the RSC tree without the deleted goal
+    await expect(
+      pg.getByRole("heading", { name: "Delete Me Goal" }),
+    ).not.toBeVisible({ timeout: 5_000 })
   })
 })
