@@ -102,7 +102,7 @@ export default function TransactionTable({ transactions }: TransactionTableProps
         </select>
       </div>
 
-      {/* ── Table ── */}
+      {/* ── Empty state ── */}
       {filtered.length === 0 ? (
         <p className="py-8 text-textMuted text-sm text-center">
           {transactions.length === 0
@@ -110,67 +110,118 @@ export default function TransactionTable({ transactions }: TransactionTableProps
             : "No transactions match your filters."}
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-borderSubtle">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-borderSubtle bg-bgElevated">
-                <th className="px-4 py-3 text-left text-textSecondary font-medium">Date</th>
-                <th className="px-4 py-3 text-left text-textSecondary font-medium">Merchant</th>
-                <th className="px-4 py-3 text-left text-textSecondary font-medium">Category</th>
-                <th className="px-4 py-3 text-right text-textSecondary font-medium tabular-nums">
-                  Amount
-                </th>
-                <th className="px-4 py-3 text-right text-textSecondary font-medium sr-only">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((tx, idx) => {
-                const isExpense = parseFloat(tx.amount) < 0
-                return (
-                  <tr
-                    key={tx.id}
-                    className={`${
-                      idx < filtered.length - 1 ? "border-b border-borderSubtle" : ""
-                    } hover:bg-bgHover transition-colors`}
-                  >
-                    <td className="px-4 py-3 text-textMuted whitespace-nowrap">
-                      {formatDate(tx.date)}
-                    </td>
-                    <td className="px-4 py-3 text-textPrimary font-medium max-w-[200px] truncate">
+        <>
+          {/* ── Mobile card list (< sm) ── */}
+          <ul className="flex flex-col gap-3 sm:hidden" aria-label="Transactions">
+            {filtered.map((tx) => {
+              const isExpense = parseFloat(tx.amount) < 0
+              return (
+                <li
+                  key={tx.id}
+                  className="rounded-xl border border-borderSubtle bg-bgElevated p-4"
+                >
+                  {/* Top row: merchant + amount */}
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-semibold text-textPrimary leading-snug">
                       {tx.merchant}
-                    </td>
-                    <td className="px-4 py-3 text-textSecondary">{tx.category}</td>
-                    <td
-                      className={`px-4 py-3 text-right font-semibold tabular-nums ${
+                    </span>
+                    <span
+                      className={`font-semibold tabular-nums whitespace-nowrap ${
                         isExpense ? "text-budgetOverspent" : "text-budgetHealthy"
                       }`}
                     >
-                      {isExpense ? "−" : "+"}
-                      {formatCurrency(tx.amount)}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {/* Delete — plain Server Action form; no JS required */}
-                      <form action={deleteTransaction}>
-                        <input type="hidden" name="id" value={tx.id} />
-                        <button
-                          type="submit"
-                          aria-label={`Delete transaction at ${tx.merchant}`}
-                          className="px-2 py-1 text-xs text-textMuted rounded
-                                     hover:text-budgetOverspent hover:bg-bgElevated
-                                     transition-colors focus:outline-none focus:ring-2 focus:ring-accentBlue"
-                        >
-                          Delete
-                        </button>
-                      </form>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                      {isExpense ? "−" : "+"}{formatCurrency(tx.amount)}
+                    </span>
+                  </div>
+
+                  {/* Bottom row: category + date + delete */}
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <span className="text-xs text-textMuted">
+                      {tx.category} · {formatDate(tx.date)}
+                    </span>
+                    <form action={deleteTransaction}>
+                      <input type="hidden" name="id" value={tx.id} />
+                      <button
+                        type="submit"
+                        aria-label={`Delete transaction at ${tx.merchant}`}
+                        className="min-h-[44px] min-w-[44px] flex items-center justify-center
+                                   text-xs text-textMuted rounded
+                                   hover:text-budgetOverspent hover:bg-bgHover
+                                   active:bg-bgHover
+                                   transition-colors focus:outline-none focus:ring-2 focus:ring-accentBlue"
+                      >
+                        Delete
+                      </button>
+                    </form>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+
+          {/* ── Desktop table (sm+) ── */}
+          <div className="hidden sm:block overflow-x-auto rounded-xl border border-borderSubtle">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-borderSubtle bg-bgElevated">
+                  <th className="px-4 py-3 text-left text-textSecondary font-medium">Date</th>
+                  <th className="px-4 py-3 text-left text-textSecondary font-medium">Merchant</th>
+                  <th className="px-4 py-3 text-left text-textSecondary font-medium">Category</th>
+                  <th className="px-4 py-3 text-right text-textSecondary font-medium tabular-nums">
+                    Amount
+                  </th>
+                  <th className="px-4 py-3 text-right text-textSecondary font-medium sr-only">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((tx, idx) => {
+                  const isExpense = parseFloat(tx.amount) < 0
+                  return (
+                    <tr
+                      key={tx.id}
+                      className={`${
+                        idx < filtered.length - 1 ? "border-b border-borderSubtle" : ""
+                      } hover:bg-bgHover transition-colors`}
+                    >
+                      <td className="px-4 py-3 text-textMuted whitespace-nowrap">
+                        {formatDate(tx.date)}
+                      </td>
+                      <td className="px-4 py-3 text-textPrimary font-medium max-w-[200px] truncate">
+                        {tx.merchant}
+                      </td>
+                      <td className="px-4 py-3 text-textSecondary">{tx.category}</td>
+                      <td
+                        className={`px-4 py-3 text-right font-semibold tabular-nums ${
+                          isExpense ? "text-budgetOverspent" : "text-budgetHealthy"
+                        }`}
+                      >
+                        {isExpense ? "−" : "+"}
+                        {formatCurrency(tx.amount)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {/* Delete — plain Server Action form; no JS required */}
+                        <form action={deleteTransaction}>
+                          <input type="hidden" name="id" value={tx.id} />
+                          <button
+                            type="submit"
+                            aria-label={`Delete transaction at ${tx.merchant}`}
+                            className="px-2 py-1 text-xs text-textMuted rounded
+                                       hover:text-budgetOverspent hover:bg-bgElevated
+                                       transition-colors focus:outline-none focus:ring-2 focus:ring-accentBlue"
+                          >
+                            Delete
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Row count */}

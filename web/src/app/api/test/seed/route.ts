@@ -41,7 +41,7 @@ interface SeedRow {
 }
 
 function guardEnv(): NextResponse | null {
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.ALLOW_TEST_SEED !== "true") {
     return NextResponse.json({ error: "Not available in production" }, { status: 403 })
   }
   return null
