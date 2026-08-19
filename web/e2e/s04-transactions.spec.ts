@@ -22,7 +22,7 @@
 
 import { test, expect, type Page } from "@playwright/test"
 
-const USER = { email: "E2E_TEST_USER_EMAIL", password: "REDACTED" }
+const USER = { email: process.env.E2E_USER_EMAIL ?? "test@test.com", password: process.env.E2E_USER_PASSWORD ?? "12345" }
 const SEED_URL = "/api/test/seed"
 
 function currentMonthDate(day: number): string {
@@ -159,7 +159,7 @@ test.describe("Transaction Review Screen (authenticated)", () => {
     await expect(pg.getByRole("cell", { name: "Whole Foods", exact: true })).toBeVisible({ timeout: 5_000 })
     await expect(pg.getByRole("cell", { name: "Groceries", exact: true })).toBeVisible()
     // Amount formatted as expense: −$42.50 (unicode minus)
-    await expect(pg.getByText("−$42.50")).toBeVisible()
+    await expect(pg.getByRole("cell", { name: "−$42.50" })).toBeVisible()
 
     // Capture the transaction ID for afterAll cleanup by reading the hidden input
     // in the delete form rendered for the Whole Foods row.

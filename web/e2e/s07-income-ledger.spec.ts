@@ -18,7 +18,7 @@
 
 import { test, expect, type Page } from "@playwright/test"
 
-const USER = { email: "E2E_TEST_USER_EMAIL", password: "REDACTED" }
+const USER = { email: process.env.E2E_USER_EMAIL ?? "test@test.com", password: process.env.E2E_USER_PASSWORD ?? "12345" }
 
 async function signIn(page: Page): Promise<void> {
   await page.goto("/sign-in")

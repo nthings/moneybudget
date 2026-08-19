@@ -135,8 +135,9 @@ test.describe("Demo Seed End-to-End Flow", () => {
     await expect(pg.getByText("Lifestyle")).toBeVisible()
 
     // A sample of seeded items across tiers
+    // (Financial Goals tier shows only piggy bank contributions, not manual items)
     await expect(pg.getByText("Rent / Mortgage")).toBeVisible()
-    await expect(pg.getByText("Emergency Fund")).toBeVisible()
+    await expect(pg.getByText("Groceries")).toBeVisible()
     await expect(pg.getByText("Dining Out")).toBeVisible()
   })
 
@@ -147,9 +148,10 @@ test.describe("Demo Seed End-to-End Flow", () => {
     await expect(pg.getByRole("heading", { name: "Transactions" })).toBeVisible()
 
     // seedDemoData inserts 12 transactions; spot-check a few merchants
-    await expect(pg.getByText("Sunrise Properties")).toBeVisible()
-    await expect(pg.getByText("Whole Foods Market")).toBeVisible()
-    await expect(pg.getByText("Acme Corp Payroll")).toBeVisible()
+    // (getByRole('cell') scopes to the desktop table; mobile card is hidden at desktop viewport)
+    await expect(pg.getByRole("cell", { name: "Sunrise Properties", exact: true })).toBeVisible()
+    await expect(pg.getByRole("cell", { name: "Whole Foods Market", exact: true })).toBeVisible()
+    await expect(pg.getByRole("cell", { name: "Acme Corp Payroll", exact: true })).toBeVisible()
   })
 
   // ─── UAT-06: Piggy Banks shows seeded goal ──────────────────────────────
@@ -186,9 +188,9 @@ test.describe("Demo Seed End-to-End Flow", () => {
     await expect(efHeadings).toHaveCount(1)
 
     // Transactions screen should not show doubled rows.
-    // seedDemoData plants "Sunrise Properties" once — confirm exactly 1 row.
+    // seedDemoData plants "Sunrise Properties" once — confirm exactly 1 table cell.
     await pg.goto("/transactions")
-    await expect(pg.getByText("Sunrise Properties")).toHaveCount(1)
+    await expect(pg.locator("table").getByText("Sunrise Properties")).toHaveCount(1)
   })
 
   // ─── UAT-09: Second account gets its own independent seed ───────────────

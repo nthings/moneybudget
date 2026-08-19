@@ -12,8 +12,8 @@
 import { test, expect } from "@playwright/test"
 
 const USER = {
-  email: "E2E_TEST_USER_EMAIL",
-  password: "REDACTED",
+  email: process.env.E2E_USER_EMAIL ?? "test@test.com",
+  password: process.env.E2E_USER_PASSWORD ?? "12345",
 }
 const WRONG_PASSWORD = "wrongpassword"
 

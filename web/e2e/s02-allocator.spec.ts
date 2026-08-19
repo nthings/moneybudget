@@ -16,7 +16,7 @@
 
 import { test, expect, type Page } from "@playwright/test"
 
-const USER = { email: "E2E_TEST_USER_EMAIL", password: "REDACTED" }
+const USER = { email: process.env.E2E_USER_EMAIL ?? "test@test.com", password: process.env.E2E_USER_PASSWORD ?? "12345" }
 
 async function signIn(page: Page): Promise<void> {
   await page.goto("/sign-in")
@@ -84,9 +84,9 @@ test.describe("Allocator Screen (authenticated)", () => {
     const today = new Date()
     const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`
     await pg.getByPlaceholder("Description (e.g. Salary, Freelance)").fill("Test Income S02")
-    await pg.getByPlaceholder("0.00").fill("5000")
+    await pg.locator('input[name="amount"]').fill("5000")
     await pg.locator('input[type="date"]').fill(dateStr)
-    await pg.getByRole("button", { name: "Add" }).click()
+    await pg.getByRole("button", { name: "Add", exact: true }).click()
     await expect(pg.getByText("Income entry added.")).toBeVisible({ timeout: 5_000 })
   })
 
@@ -98,7 +98,7 @@ test.describe("Allocator Screen (authenticated)", () => {
 
   async function addItem(label: string, amount: string): Promise<void> {
     await pg.locator('[placeholder="Item name"]').first().fill(label)
-    await pg.locator('[placeholder="0.00"]').first().fill(amount)
+    await pg.locator('[placeholder="0.00"][name="allocatedAmount"]').first().fill(amount)
     await pg.getByRole("button", { name: "+ Add" }).first().click()
     // Wait for the new item row to appear after RSC revalidation
     await expect(
@@ -204,7 +204,7 @@ test.describe("Allocator Screen (authenticated)", () => {
   test("UAT-09: Actual Balance card shows income amount without NaN", async () => {
     await expect(pg.getByText("Actual Balance")).toBeVisible()
     // totalActuals = 0 in S02 → actualBalance = $5,000
-    await expect(pg.getByText("$5,000.00")).toBeVisible()
+    await expect(pg.getByText("$5,000.00").first()).toBeVisible()
     await expect(pg.getByText("On Track").first()).toBeVisible()
     // Explicit NaN guard
     await expect(pg.getByText(/NaN/)).not.toBeVisible()

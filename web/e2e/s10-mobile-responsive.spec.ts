@@ -18,7 +18,10 @@
 
 import { test, expect, type Page } from "@playwright/test"
 
-const USER = { email: "E2E_TEST_USER_EMAIL", password: "REDACTED" }
+const USER = {
+  email: process.env.E2E_USER_EMAIL ?? "test@test.com",
+  password: process.env.E2E_USER_PASSWORD ?? "12345",
+}
 const SEED_URL = "/api/test/seed"
 const MOBILE_VIEWPORT = { width: 375, height: 812 }
 
@@ -93,18 +96,18 @@ test.beforeAll(async ({ browser }) => {
   const today = new Date()
   const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`
   const incomeDesc = pg.getByPlaceholder("Description (e.g. Salary, Freelance)")
-  const incomeAmt = pg.getByPlaceholder("0.00")
+  const incomeAmt = pg.locator('input[name="amount"]')
   const incomeDateInput = pg.locator('input[type="date"]')
   await incomeDesc.fill("Mobile Test Income")
   await incomeAmt.fill("3000")
   await incomeDateInput.fill(dateStr)
-  await pg.getByRole("button", { name: "Add" }).click()
+  await pg.getByRole("button", { name: "Add", exact: true }).click()
   await expect(pg.getByText("Income entry added.")).toBeVisible({ timeout: 5_000 })
 
   // Add one budget item so BudgetItemRow controls are present
   await pg.locator('[placeholder="Item name"]').first().fill("Mobile Test Item")
-  await pg.locator('[placeholder="0.00"]').first().fill("200")
-  await pg.getByRole("button", { name: "Add" }).first().click()
+  await pg.locator('[placeholder="0.00"][name="allocatedAmount"]').first().fill("200")
+  await pg.getByRole("button", { name: "+ Add", exact: true }).first().click()
   await expect(pg.getByText("Mobile Test Item")).toBeVisible({ timeout: 5_000 })
 })
 
@@ -155,7 +158,8 @@ test("UAT-S10-03: allocator has no horizontal overflow at 375px", async () => {
 test("UAT-S10-04: TierGroup BudgetItemRow edit and delete buttons are visible on mobile without hover", async () => {
   // At 375px (<sm breakpoint), sm:opacity-0 does NOT apply — buttons should be visible
   // without any hover action.
-  const budgetItemRow = pg.locator("li.group").first()
+  // Filter by text to target the budget item row (not IncomeLedger rows which also use li.group)
+  const budgetItemRow = pg.locator("li.group").filter({ hasText: "Mobile Test Item" })
   await expect(budgetItemRow).toBeVisible()
 
   const editBtn = budgetItemRow.getByRole("button", { name: /edit/i }).first()

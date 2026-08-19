@@ -25,7 +25,7 @@
 
 import { test, expect, type Page } from "@playwright/test"
 
-const USER = { email: "E2E_TEST_USER_EMAIL", password: "REDACTED" }
+const USER = { email: process.env.E2E_USER_EMAIL ?? "test@test.com", password: process.env.E2E_USER_PASSWORD ?? "12345" }
 const SEED_URL = "/api/test/seed"
 
 // Build current-month ISO date strings dynamically so the spec stays valid
