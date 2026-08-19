@@ -221,3 +221,29 @@ test("UAT-S10-09: piggy-banks page heading and create form are visible on mobile
   // Goal Name input from CreateGoalForm
   await expect(pg.getByLabel("Goal Name")).toBeVisible()
 })
+
+// ─── UAT-S10-10: GoalCard — edit/delete buttons meet 44px tap target ─────────
+
+test("UAT-S10-10: GoalCard edit and delete buttons meet 44px tap target on mobile", async () => {
+  // A goal was seeded in beforeAll — at least one GoalCard is visible
+  const editBtn = pg.getByRole("button", { name: /Edit / }).first()
+  const deleteBtn = pg.getByRole("button", { name: /Delete / }).first()
+  const monthlyBtn = pg.getByRole("button", { name: /Edit monthly contribution/ }).first()
+
+  const [editBox, deleteBox, monthlyBox] = await Promise.all([
+    editBtn.boundingBox(),
+    deleteBtn.boundingBox(),
+    monthlyBtn.boundingBox(),
+  ])
+
+  expect(editBox, "edit button must be visible").not.toBeNull()
+  expect(deleteBox, "delete button must be visible").not.toBeNull()
+  expect(monthlyBox, "monthly edit button must be visible").not.toBeNull()
+
+  expect(editBox!.height, "edit button height must be >= 44px").toBeGreaterThanOrEqual(44)
+  expect(editBox!.width, "edit button width must be >= 44px").toBeGreaterThanOrEqual(44)
+  expect(deleteBox!.height, "delete button height must be >= 44px").toBeGreaterThanOrEqual(44)
+  expect(deleteBox!.width, "delete button width must be >= 44px").toBeGreaterThanOrEqual(44)
+  expect(monthlyBox!.height, "monthly button height must be >= 44px").toBeGreaterThanOrEqual(44)
+  expect(monthlyBox!.width, "monthly button width must be >= 44px").toBeGreaterThanOrEqual(44)
+})

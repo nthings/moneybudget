@@ -214,7 +214,7 @@ export function GoalCard({ goal }: GoalCardProps) {
           <button
             type="button"
             onClick={() => setEditingGoal(true)}
-            className="rounded p-1 text-zinc-500 hover:text-indigo-400 transition-colors"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded text-zinc-500 hover:text-indigo-400 transition-colors -mr-1 -mt-1"
             aria-label={`Edit ${goal.name}`}
           >
             <svg
@@ -237,7 +237,7 @@ export function GoalCard({ goal }: GoalCardProps) {
           <button
             type="button"
             onClick={() => setConfirmDelete(true)}
-            className="rounded p-1 text-zinc-500 hover:text-red-400 transition-colors"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded text-zinc-500 hover:text-red-400 transition-colors -mr-2 -mt-1"
             aria-label={`Delete ${goal.name}`}
           >
             <svg
@@ -351,10 +351,23 @@ export function GoalCard({ goal }: GoalCardProps) {
             <button
               type="button"
               onClick={() => setEditingMonthly(true)}
-              className="text-xs text-zinc-500 hover:text-indigo-400 transition-colors"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded text-zinc-500 hover:text-indigo-400 transition-colors -ml-1"
               aria-label="Edit monthly contribution"
             >
-              ✏️
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 013.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                />
+              </svg>
             </button>
           </>
         )}
